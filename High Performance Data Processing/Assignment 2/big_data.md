@@ -1,424 +1,587 @@
+# 📘 Assignment 2: Mastering Big Data Handling  
 
-#  Big Data Handling with IMDB Review Dataset
+---
 
-<table border="solid" align="center">
-  <tr>
-    <th>Name</th>
-    <th>Matric Number</th>
-  </tr>
-  <tr>
-    <td width=80%>CHEN PYNG HAW</td>
-    <td>A22EC0042</td>
-</table>
+## 👥 Group Information  
 
-## Abstract
+**Group CC**  
+- Chua Jia Lin (A23CS0069)  
+- Joanne Ching Yin Xuan (A23CS0227)  
 
-This report details a project focused on mastering big data handling techniques using the IMDB Review Dataset. Various strategies were explored, primarily utilizing the Pandas library, including loading selective data, employing chunking, optimizing data types, and sampling. Additionally, Dask was used to demonstrate parallel processing capabilities. The performance of these strategies was evaluated based on execution time and memory usage. A comparative analysis of Pandas, Polars, and Dask for normal data loading operations was also conducted. The findings indicate that Polars offered the best performance for standard loading, while techniques like optimizing data types and loading less data significantly reduced memory consumption in Pandas. Dask showed its potential for scalability, though with some overhead in the tested scenarios. This project provided valuable insights into choosing appropriate tools and strategies based on dataset size and specific task requirements.
+---
+
+## 1. Dataset Description  
+
+The dataset used in this assignment is the **Transactions Dataset** obtained from Kaggle.
+
+- **Source**: https://www.kaggle.com/datasets/ismetsemedov/transactions/data  
+- **File Size**: 2.73 GB  
+- **Domain**: Finance 
+- **Number of Records**: 7,483,766 rows  
+- **Number of Columns**: 24
+- **Dataset Columns Description**:
+  | Column | Data Type | Description
+  |--------|--------|--------|
+  | transaction_id | object  | Unique identifier for each transaction |
+  | customer_id | object  | Unique identifier for each customer in the dataset |
+  | card_number  | int64  | Masked card number associated with the transaction |
+  | timestamp | object  | Date and time of the transaction |
+  | merchant_category  | object  | General category of the merchant (e.g., Retail, Grocery, Travel) |
+  | merchant_type  | object  | Specific type within the merchant category (e.g., "online" for Retail) |
+  | merchant | object  | Name of the merchant where the transaction took place |
+  | amount  | float64 | Transaction amount (currency based on the country)|
+  | currency  | object  | Currency used for the transaction (e.g., USD, EUR, JPY) |
+  | country  | object  | Country where the transaction occurred |
+  | city  | object  | City where the transaction took place |
+  | city_size  | object  | Size of the city (e.g., medium, large) |
+  | card_type  | object  | Type of card used (e.g., Basic Credit, Gold Credit) |
+  | card_present  | bool  | Indicates if the card was physically present during the transaction (used in POS transactions) |
+  | device  | object  | Device used for the transaction (e.g., Chrome, iOS App, NFC Payment) |
+  | channel  | object  | Type of channel used for the transaction (web, mobile, POS) |
+  | device_fingerprint  | object  | Unique fingerprint for the device used in the transaction |
+  | ip_address | object  | IP address associated with the transaction |
+  | distance_from_home  | int64  | Binary indicator showing if the transaction occurred outside the customer's home country |
+  | high_risk_merchant  | bool  | Indicates if the merchant category is known for higher fraud risk (e.g., Travel, Entertainment) |
+  | transaction_hour  | int64  | Hour of the day when the transaction was made |
+  | weekend_transaction  | bool  | Boolean indicating if the transaction took place on a weekend |
+  | velocity_last_hour | object  | Dictionary containing metrics on the transaction velocity, including: num_transactions (Number of transactions in the last hour for this customer), total_amount (Total amount spent in the last hour), unique_merchants (Count of unique merchants in the last hour), unique_countries (Count of unique countries in the last hour), and max_single_amount (Maximum single transaction amount in the last hour) |
+  | is_fraud | bool  | Binary indicator showing if the transaction is fraudulent (True for fraudulent transactions, False for legitimate ones) |
+
+This dataset contains detailed transaction-level information such as customer data, merchant details, transaction amounts, and fraud indicators. The large size of the dataset makes it suitable for evaluating big data handling strategies and performance optimization techniques. 
+This dataset was selected because it provides: 
+- A sufficiently large volume of data to simulate real-world big data challenges   
+- Diverse data types suitable for optimization techniques   
+- A practical use case in financial analytics and fraud detection   
+ 
+Therefore, it is well-suited for comparing the performance of Pandas, Dask, and Polars under large-scale data processing conditions. 
+
+---
+
+## 2. Library Choices  
+
+Three libraries were used in this assignment to compare traditional and scalable approaches to big data handling :
 
 
-## 1. Introduction
-
-The proliferation of large datasets, or "big data," presents unique challenges in terms of storage, processing, and analysis. Efficiently handling big data is crucial for extracting meaningful insights and building scalable applications. This project aims to explore and evaluate various strategies for managing large datasets, focusing on practical implementation and performance comparison. We utilized the IMDB Review Dataset, a significantly sized collection of text data, to test these strategies. The primary libraries employed were Pandas for its widespread use and rich API, Dask for its parallel computing capabilities, and Polars for its emerging high-performance data manipulation. This report outlines the dataset used, the methodologies applied for handling and processing the data, the results obtained from these experiments, and a reflection on the learnings.
-
-
-## 2. Dataset Description
-
-The primary dataset used for this assignment is the **IMDB Review Dataset**.
-
--   **Source**: Kaggle ([https://www.kaggle.com/datasets/ebiswas/imdb-review-dataset](https://www.kaggle.com/datasets/ebiswas/imdb-review-dataset))
--   **Size**: Approximately 1.07 GB uncompressed.
--   **Records**: Over 1 million movie reviews.
--   **Domain**: The dataset contains movie review data, including review text, ratings, reviewer information, and spoiler tags.
--   **File Format**: The data was provided in JSON format (`part-01.json`).
--  **Dataset Features Description**:
-
-| **Content**       | **Details**                                                                 |
-|-------------------|------------------------------------------------------------------------------|
-| `review_id`       | It is generated by IMDB and unique to each review                           |
-| `reviewer`        | Public identity or username of the reviewer                                 |
-| `movie`           | It represents the name of the show (can be – movie, tv-series, etc.)        |
-| `rating`          | Rating of `movie` out of 10, can be `None` for older reviews                |
-| `review_summary`  | Plain summary of the review                                                  |
-| `review_date`     | Date of the posted review                                                    |
-| `spoiler_tag`     | If `1` = spoiler, `0` = not spoiler                                          |
-| `review_detail`   | Details of the review                                                        |
-| `helpful`         | `list[0]` people find the review helpful out of `list[1]`                    |
-
-- **Dataset Statistics**:
-	- **# total records** = 5,571,499  
-	- **# total shows** = 453,528  
-	- **# users** = 1,699,310  
-	- **# spoilers** = 1,186,611
+| Library | Purpose |
+|--------|--------|
+| **Pandas** | Baseline (single-threaded). It is widely adopted and easy to use, but operates in a single-threaded environment, limiting its performance on large datasets.  |
+| **Dask** | Scalable parallel processing  that processes data in partitions. It is designed to handle datasets that exceed memory capacity and support distributed computing. |
+| **Polars** | High-performance multi-threading. It offers fast execution using a Rust-based engine |
 
 
-This dataset was selected due to its substantial volume and rich structure, making it suitable for testing and comparing various big data handling strategies.
+---
 
+## 3. Data Loading and Inspection  
 
+### 3.1 Loading Dataset  
+To load the dataset into Google Collab, a few steps were taken:
+- Uploaded the kaggle.json API key
+- Moved the uploaded file to the newly created .kaggle directory and set proper permissions
+- Fetched the dataset directly into the Google Colab environment using Kaggle CLI
+- Extracted the dataset from its ZIP file
 
-## 3. Initial Data Loading and Inspection
+```python
+from google.colab import files
+files.upload()
 
-The first step involved setting up the environment to access the dataset from Kaggle and performing an initial load to understand its basic characteristics.
+!mkdir -p ~/.kaggle
+!cp kaggle.json ~/.kaggle/
+!chmod 600 ~/.kaggle/kaggle.json
 
-### 3.1. Kaggle API Configuration
-
-To download the dataset, the Kaggle API credentials were configured:
-
+!kaggle datasets download -d ismetsemedov/transactions
+!unzip transactions.zip
 ```
-import os
-os.environ['KAGGLE_USERNAME'] = "myusername"
-os.environ['KAGGLE_KEY'] = "mykaggleapi"
 
-```
 
-### 3.2. Loading and Initial Inspection with Pandas
-
-The dataset was initially loaded using the `kagglehub` library, which by default loaded it into a Pandas DataFrame. The `part-01.json` file was then saved locally for subsequent operations.
-
-```
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
+### 3.2 Load Sample (1 Million Rows)
+```python
 import pandas as pd
+df = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+```
 
-# Relative path inside the dataset to load
-file_path = "part-01.json"
 
-# Load the dataset as a pandas DataFrame
-df = kagglehub.load_dataset(
-     KaggleDatasetAdapter.PANDAS,
-     "ebiswas/imdb-review-dataset",
-    file_path
+### 3.3 Inspect Dataset
+```python
+print("First 5 rows:")
+display(df.head())
+
+print("\nDataset Shape:")
+print(df.shape)
+
+print("\nData Types:")
+print(df.dtypes)
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+```
+Output
+```python
+Shape: (1000000, 24)
+No missing values detected
+Data types include: object, float64, int64, bool
+
+```
+### Discussion
+The dataset consists of structured transaction data with no missing values. It includes multiple data types, making it suitable for applying different optimisation strategies.
+
+## 4. Big Data Handling Strategies
+
+In this notebook, five effective strategies are applied to handle large datasets.  
+Part 1 focuses on implementing optimisation techniques using **Pandas**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
+
+**Part 1** uses a subset of **1 million records** to reduce memory usage and speed up development. This allows efficient testing and demonstration of each strategy without overloading the system.
+
+**Part 2** uses the **full dataset** for each library to ensure a fair and realistic performance comparison. Evaluating all libraries under the same conditions provides accurate measurements of execution time and memory usage, and better reflects real-world data processing scenarios.
+
+---
+
+### 🔹 Part 1: Big Data Handling Strategies
+- Load Less Data  
+- Use Chunking  
+- Optimise Data Types  
+- Sampling  
+- Parallel Processing with Scalable Libraries  
+
+
+### 4.1 Load Less Data
+```python
+selected_cols = [
+    'transaction_id','customer_id','merchant',
+    'amount','currency','high_risk_merchant','is_fraud'
+]
+
+df_selected = pd.read_csv(
+    "synthetic_fraud_data.csv",
+    usecols=selected_cols,
+    nrows=1000000
+)
+```
+### Output
+```python
+Shape: (1000000, 7)
+Memory usage: ~228 MB
+Execution time: ~4.13 seconds
+```
+### Discussion
+Loading only necessary columns reduces memory usage and improves performance.
+
+### 4.2 Chunking
+```python
+chunk_iter = pd.read_csv(
+    "synthetic_fraud_data.csv",
+    chunksize=200000,
+    nrows=1000000
+)
+```
+
+### Output
+```python
+Processed in chunks
+Max memory usage: ~217 MB
+Execution time: ~14.7 seconds
+```
+
+### Explanation
+Chunking helps process large datasets without exceeding memory limits but adds processing overhead.
+________________________________________
+
+### 4.3 Data Type Optimisation
+```python
+df = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+
+df["amount"] = df["amount"].astype("float32")
+df["transaction_hour"] = df["transaction_hour"].astype("int8")
+```
+### Output
+```python
+Memory usage reduced
+Execution time: ~17.7 seconds
+```
+
+### Discussion
+Optimising data types significantly reduces memory usage but requires careful implementation.
+
+________________________________________
+### 4.4 Sampling
+Sampling is used to reduce the size of a dataset by selecting a representative subset. This allows faster processing and analysis while maintaining the overall structure and characteristics of the data. It is commonly used during development and testing to avoid long execution times on large datasets.
+
+```python
+import pandas as pd
+import time
+
+start_time = time.time()
+
+# Load dataset
+df_full = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+
+# Apply sampling (10%)
+df_sample = df_full.sample(frac=0.1, random_state=42)
+
+sampling_time = time.time() - start_time
+
+# Memory usage
+mem_sampling = df_sample.memory_usage(deep=True).sum() / (1024**2)
+
+print("Original rows:", df_full.shape[0])
+print("Sampled rows:", df_sample.shape[0])
+print("Memory usage (sample):", round(mem_sampling, 2), "MiB")
+print("Execution time:", round(sampling_time, 2), "seconds")
+
+df_sample.head()
+```
+
+### Output
+```python
+Original rows: 1000000
+Sampled rows: 100000
+Memory usage: 109.74 MiB
+Execution time: 11.27 seconds
+```
+
+### Discussion
+Sampling significantly reduces the dataset size, resulting in faster execution time and lower memory usage compared to processing the full dataset. This makes it highly useful during the development and testing phase, where quick iterations are required.
+
+However, sampling may not capture all patterns present in the full dataset, especially for rare events such as fraud cases. Therefore, while it improves efficiency, it should be used carefully and complemented with full dataset analysis for final results.
+________________________________________
+
+### 4.5 Parallel Processing with Scalable Libraries
+Parallel processing improves performance by executing multiple operations simultaneously using multiple CPU cores instead of sequential processing. This is especially important for large datasets where single-threaded processing becomes slow and inefficient.
+
+
+**Library Used**  
+Polars is used as it supports multi-threaded execution by default. Unlike Pandas, which is single-threaded, Polars distributes operations across multiple CPU cores, resulting in faster and more efficient data processing.
+
+```python
+import polars as pl
+import time
+
+print("\n--- Parallel Processing using Polars ---")
+
+start_time = time.time()
+
+# Load dataset (multi-threaded internally)
+df = pl.read_csv("synthetic_fraud_data.csv", n_rows=1_000_000)
+
+# Measure memory usage
+mem_before = df.estimated_size("mb")
+
+# Parallel operations
+result = (
+    df
+    .filter(pl.col("amount") > 100)
+    .group_by("merchant_category")
+    .agg([
+        pl.col("amount").mean().alias("avg_amount"),
+        pl.col("amount").count().alias("transaction_count")
+    ])
 )
 
-df.to_json("part-01.json", orient="records", lines=True) # Save for local use
+end_time = time.time()
 
-# Load from local JSON for subsequent tasks
-df = pd.read_json('part-01.json', lines=True)
+print(result.head())
+print("\nExecution Time:", round(end_time - start_time, 2), "seconds")
+print("Memory Usage (Before):", round(mem_before, 2), "MiB")
+```
 
-# View basic info
-print("First 5 records:\n", df.head())
-print("Dataset shape:", df.shape)
-print("Columns and dtypes:\n", df.dtypes)
-mem_usage_initial = df.memory_usage(deep=True).sum() / (1024**2) # in MB
-print(f"\nInitial Memory usage: {mem_usage_initial:.2f} MB")
+### Output
+```python
+--- Parallel Processing using Polars ---
+shape: (5, 3)
+┌───────────────────┬──────────────┬───────────────────┐
+│ merchant_category │ avg_amount   │ transaction_count │
+├───────────────────┼──────────────┼───────────────────┤
+│ Education         │ 48041.03     │ 118790            │
+│ Retail            │ 65623.42     │ 119067            │
+│ Restaurant        │ 30708.82     │ 107907            │
+│ Entertainment     │ 32767.58     │ 111443            │
+│ Gas               │ 49028.25     │ 119424            │
+└───────────────────┴──────────────┴───────────────────┘
+
+Execution Time: 12.08 seconds
+Memory Usage (Before): 338.77 MiB
+```
+
+### Discussion
+Polars efficiently processes large datasets using parallel processing. By leveraging multi-threading, operations such as filtering, grouping, and aggregation are executed simultaneously across multiple CPU cores, resulting in faster execution compared to sequential processing.
+
+The memory usage (~338 MiB) remains reasonable for 1 million records, showing that Polars handles data efficiently on a single machine.
+
+However, Polars is mainly designed for single-machine processing. For much larger datasets that exceed memory limits, distributed frameworks such as Dask or Apache Spark may be more suitable.
+
+Overall, this strategy demonstrates how scalable libraries improve performance and efficiency when working with big data.
+________________________________________
+### 🔹 Part 2: Loading Dataset with Different Libraries
+This approach loads the entire dataset into memory using Pandas without applying any optimisation techniques. It represents the traditional method of handling data and serves as a baseline for comparison with other big data handling strategies.
+
+- Pandas  
+- Dask  
+- Polars
+
+### 1. 📦 Full Load Using Pandas (Traditional Approach)
+
+```python
+import pandas as pd
+import time
+
+start = time.time()
+
+# Load complete dataset
+df_pandas = pd.read_csv("synthetic_fraud_data.csv")
+
+end = time.time()
+
+# Calculate memory usage
+mem_pandas = df_pandas.memory_usage(deep=True).sum() / (1024**2)
+
+# Output
+print(df_pandas.head(5))
+print("Shape:", df_pandas.shape)
+print(f"Execution Time: {end - start:.2f} seconds")
+print(f"Memory usage: {mem_pandas:.2f} MiB")
 
 ```
 
-**Initial Inspection Output (Illustrative based on ipynb):**
+### Output
+```python
+Shape: (7483766, 24)
+Execution Time: 83.33 seconds
+Memory usage: 8148.61 MiB
+```
 
--   **First 5 records**: Displayed the first few rows, showing columns like `review_id`, `reviewer`, `movie`, `rating`, `review_summary`, `review_date`, `spoiler_tag`, `review_detail`, and `helpful`.
--   **Dataset shape**: (1010293, 9), indicating over 1 million records and 9 columns.
--   **Columns and dtypes**: Revealed that most columns were of `object` type, `rating` was `float64`, and `spoiler_tag` was `int64`.
--   **Initial Memory usage**: Pandas normal load reported approximately 1370.75 MB.
+### Discussion
+The full load approach using Pandas results in high memory consumption (~8148 MiB) and long execution time (~83 seconds). This is because the entire dataset is loaded into memory at once and processed using a single-threaded approach.
 
-This initial inspection confirmed the dataset's size and the need for efficient handling strategies.
+While this method is simple and easy to implement, it is not suitable for large datasets as it can quickly exhaust available memory and significantly slow down processing. This highlights the limitations of traditional data processing methods and the need for optimisation strategies such as chunking, sampling, and parallel processing.
+________________________________________
+### 2. 📦 Full Load Using Dask
+This approach uses Dask to load and process the full dataset. Dask supports lazy evaluation, meaning data is not immediately loaded into memory. Instead, operations are deferred until explicitly executed. In this case, the `.compute()` function is used to force the dataset to be fully loaded into memory for comparison purposes.
+```python
+import dask.dataframe as dd
+import time
+
+start = time.time()
+
+# Load dataset lazily
+ddf = dd.read_csv("synthetic_fraud_data.csv")
+
+# Force full load into memory
+df_dask = ddf.compute()
+
+end = time.time()
+
+# Calculate memory usage
+mem_dask = df_dask.memory_usage(deep=True).sum() / (1024**2)
+
+# Output
+print(df_dask.head(5))
+print("Shape:", df_dask.shape)
+print(f"Execution Time: {end - start:.2f} seconds")
+print(f"Memory usage: {mem_dask:.2f} MiB")
+```
+### Output
+```python
+Shape: (7483766, 24)
+Execution Time: 96.43 seconds
+Memory usage: 3523.78 MiB
+```
+
+### Discussion
+The Dask implementation shows lower memory usage (~3524 MiB) compared to Pandas, as it processes data in partitions rather than loading everything at once initially. However, the execution time (~96 seconds) is slower due to overhead from task scheduling and coordination.
+
+When .compute() is called, the full dataset is still brought into memory, which reduces some of the advantages of Dask's lazy evaluation in this scenario. This explains why performance is slower compared to Pandas despite improved memory efficiency.
+
+Overall, Dask is more suitable for handling larger-than-memory datasets and distributed computing environments. However, in a single-machine setup with limited resources, its overhead can result in slower performance.
+________________________________________
+### 3. 📦 Full Load Using Polars
+This approach uses Polars to load the full dataset into memory. Polars is designed for high-performance data processing and uses a Rust-based engine with built-in multi-threading. This allows it to process data faster and more efficiently compared to traditional single-threaded libraries.
+
+```python
+import polars as pl
+import time
+
+# Measure execution time
+start_time = time.time()
+
+# Load complete dataset
+df_polars = pl.read_csv("synthetic_fraud_data.csv")
+
+# Execution time
+exec_time = time.time() - start_time
+
+# Measure memory usage
+mem_used = df_polars.estimated_size() / (1024**2)
+
+# Output
+print("First 5 rows:", df_polars.head(5))
+print("Shape:", df_polars.shape)
+print("Execution Time:", round(exec_time, 2), "seconds")
+print("Memory usage:", round(mem_used, 2), "MiB")
+```
+
+### Output 
+```python
+Shape: (7483766, 24)
+Execution Time: 16.17 seconds
+Memory usage: 2528.16 MiB
+```
+
+### Discussion
+Polars demonstrates significantly faster performance (~16 seconds) compared to Pandas and Dask due to its multi-threaded execution and efficient Rust-based engine. It is able to process large datasets quickly by utilising multiple CPU cores.
+
+The memory usage (~2528 MiB) is also lower than Pandas, indicating more efficient memory management. Compared to Dask, Polars achieves better speed while still maintaining relatively low memory usage.
+
+Overall, Polars is highly suitable for high-performance data processing on a single machine. However, like Pandas, it operates within a single-node environment, and for extremely large datasets, distributed frameworks such as Dask or Apache Spark may be more appropriate.
+________________________________________
+
+### **📊 Overall Comparison**
+
+The full dataset results show clear performance differences among the three libraries.
+
+- 🐼 **Pandas** → Highest memory usage and slower execution due to single-threaded processing  
+- ⚙️ **Dask** → Lower memory usage but slower execution due to scheduling overhead  
+- ⚡ **Polars** → Fastest execution and lowest memory usage with multi-threaded processing  
+
+**💡 Insight:**  
+Polars is the most efficient for single-machine processing, while Dask is better suited for scalable, distributed environments.
+________________________________________
+## 5. Comparative Analysis
+🔍 **Part 1: Comparison between 5 Big Data Handling Strategies**
+- Load Less Data
+- Use Chunking
+- Optimize Data Types
+- Sampling
+- Parallel Processing with Polars
+
+Two bar charts are generated:
+-One compares the execution time (in seconds).
+-The other compares the memory usage (in MB).
+
+This analysis helps to identify which strategy offers the best trade-off between speed and memory efficiency when using traditional vs. parallelized approaches.
+
+\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 
-## 4. Big Data Handling Strategies and Library Comparisons
+🔍 **Part 2: Compare between 3 library**
+In this section, the performance of three data processing libraries is evaluated:
+- Pandas
+- Polars
+- Dask
+This analysis provides insight into the trade-offs between performance, memory efficiency, and scalability across different libraries. The results are presented using tables and visualisations to clearly highlight performance differences.
 
-Several strategies were applied to manage and process the large dataset, primarily using Pandas. Dask was explored for parallel processing, and a comparative performance analysis was done against Polars and Pandas for normal load scenarios.
+### ⚡ Library Performance Comparison
 
-### 4.1. Pandas-based Strategies
+| Library | Execution Time (s) | Memory Usage (MiB) |
+|--------|------------------|-------------------|
+| Pandas | 1.96 | 217.97 |
+| Dask   | 2.77 | 92.85  |
+| Polars | 0.39 | 64.62  |
 
-These strategies focused on reducing memory footprint and processing time using Pandas.
+### ⚙️ Processing Efficiency
 
-**4.1.1. Load Less Data** 
+The three libraries show clear differences in ease of implementation, performance behaviour, and scalability.
 
-Loading only essential columns can significantly reduce memory usage and improve load times, especially when not all data is needed for a specific analysis.
+- 🐼 **Pandas**
+  - **Ease of implementation:** Very straightforward with simple and intuitive syntax. No additional configuration is required.
+  - **Handling dataset:** Successfully processes the dataset without errors, but performance is limited by single-threaded execution.
+  - **Limitations:** High memory usage and slower performance when handling large datasets.
+  - **Scalability:** Not suitable for very large datasets as it relies entirely on available memory in a single machine.
 
--   **Explanation**: Instead of loading all 9 columns, only 5 important columns (`review_id`, `reviewer`, `movie`, `rating`, `spoiler_tag`) were selected.
--   **Code Snippet (Pandas)**:
-    
-    ```
-    import pandas as pd
-    import time
-    
-    cols_to_use = ['review_id', 'reviewer', 'movie', 'rating', 'spoiler_tag']
-    start_time = time.time()
-    df_selected = pd.read_json("part-01.json", lines=True)[cols_to_use]
-    load_time = time.time() - start_time
-    
-    print("Dataset shape:", df_selected.shape)
-    # print("First 5 records:\n", df_selected.head()) # Output omitted for brevity
-    mem_usage = df_selected.memory_usage(deep=True).sum() / (1024**2)
-    print(f"\nMemory usage: {mem_usage:.2f} MB")
-    print(f"Execution time: {load_time:.2f} seconds")
-    
-    ```
-    
--   **Results**:
-    -   Dataset shape: (1010293, 5)
-    -   Memory usage: 235.14 MB
-    -   Execution time: 16.92 seconds
--   **Analysis**: This strategy provided a substantial reduction in memory (from ~1371 MB to ~235 MB) with a comparable load time.
+- ⚙️ **Dask**
+  - **Ease of implementation:** More complex than Pandas due to lazy evaluation. Requires the use of `.compute()` to trigger execution.
+  - **Handling dataset:** Efficiently handles large datasets by splitting data into partitions, reducing memory pressure.
+  - **Limitations:** Introduces overhead from task scheduling, which can lead to slower performance in smaller environments.
+  - **Scalability:** Highly scalable and suitable for distributed computing across multiple machines or clusters.
 
-**4.1.2. Use Chunking** 
-
-Chunking allows processing large files in segments, preventing memory overload. Each chunk is read and can be processed individually.
-
--   **Explanation**: The data was read in chunks of 200,000 rows using Pandas `read_json(chunksize=...)`.
--   **Code Snippet (Pandas)**:
-  
+- ⚡ **Polars**
+  - **Ease of implementation:** Relatively easy to use with syntax similar to Pandas, requiring minimal additional configuration.
+  - **Handling dataset:** Processes the dataset efficiently with fast execution and low memory usage using built-in multi-threading.
+  - **Limitations:** Primarily designed for single-machine processing and less flexible for distributed systems compared to Dask.
+  - **Scalability:** Scales well on a single machine using parallel processing, but not intended for large distributed environments.
  
-    ```
-    import pandas as pd
-    import time
-    
-    chunksize = 200_000
-    chunk_iter = pd.read_json("part-01.json", lines=True, chunksize=chunksize)
-    total_rows = 0
-    first_chunk_memory = 0
-    
-    start_time = time.time()
-    for i, chunk in enumerate(chunk_iter):
-        # Process chunk (e.g., print shape, head)
-        # if i == 0: print(f"Chunk {i+1}: {chunk.shape}\n{chunk.head(2)}")
-        total_rows += chunk.shape[0]
-        if i == 0:
-            first_chunk_memory = chunk.memory_usage(deep=True).sum() / (1024**2)
-    load_time = time.time() - start_time
-    
-    print(f"Total rows processed: {total_rows}")
-    print(f"\nMemory usage of first chunk: {first_chunk_memory:.2f} MB")
-    print(f"Total execution time: {load_time:.2f} seconds")
-    
-    ```
-    
--   **Results**:
-    -   Total rows processed: 1010293
-    -   Memory usage of first chunk: 301.95 MB
-    -   Total execution time: 16.37 seconds
--   **Analysis**: While chunking processes the entire dataset, it does so with a much smaller memory footprint at any given time (memory for one chunk). Total processing time was comparable to a full load.
+💡 Pandas is the easiest to use but least efficient for large-scale data processing.Dask offers strong scalability but introduces additional complexity and overhead.  
+Polars provides the best balance of performance and ease of use, making it the most efficient choice for high-performance processing on a single machine.
 
-**4.1.3. Optimize Data Types** 
+---
 
-Converting columns to more memory-efficient data types (e.g., `category` for low-cardinality strings, smaller integer/float types) can drastically reduce memory usage.
-
--   **Explanation**: Columns like `review_id`, `reviewer`, and `movie` were converted to `category`. `rating` was changed to `float32`, `spoiler_tag` to `int8`, and `review_date` to `datetime`.
--   **Code Snippet (Pandas)**:
-    
-    ```
-    import pandas as pd
-    import time
-    
-    start = time.time()
-    df_optimized = pd.read_json("part-01.json", lines=True)
-    df_optimized["review_id"] = df_optimized["review_id"].astype("category")
-    df_optimized["reviewer"] = df_optimized["reviewer"].astype("category")
-    df_optimized["movie"] = df_optimized["movie"].astype("category")
-    df_optimized["rating"] = df_optimized["rating"].astype("float32")
-    df_optimized["spoiler_tag"] = df_optimized["spoiler_tag"].astype("int8")
-    df_optimized["review_summary"] = df_optimized["review_summary"].astype("string")
-    df_optimized["review_detail"] = df_optimized["review_detail"].astype("string")
-    df_optimized["review_date"] = pd.to_datetime(df_optimized["review_date"], errors="coerce")
-    end = time.time()
-    
-    mem_usage = df_optimized.memory_usage(deep=True).sum() / (1024**2)
-    print(f"Memory usage: {mem_usage:.2f} MB")
-    print(f"Execution time: {end - start:.2f} seconds")
-    # print("\nSchema:\n", df_optimized.dtypes) # Output omitted
-    
-    ```
-    
--   **Results**:
-    -   Memory usage: 1249.70 MB (Note: The notebook shows 1249.70MB, which is higher than the unoptimized string columns in some Pandas versions if strings are interned. The markdown table value of 435.94MB is more typical for this optimization and might be from a different run or library version effect on category memory. The provided ipynb output is used here.)
-    -   Execution time: 20.66 seconds
--   **Analysis**: Optimizing data types can lead to significant memory savings. The actual memory reduction can vary; in this specific notebook run, the reduction shown was not as drastic as theoretically possible, but the principle holds.
-
-**4.1.4. Sampling** 
-
-Working with a representative subset of the data (a sample) can speed up initial development, exploration, and model prototyping.
-
--   **Explanation**: A 10% random sample of the dataset was taken.
--   **Code Snippet (Pandas)**:
-       
-    ```
-    import pandas as pd
-    import time
-    
-    df_full = pd.read_json("part-01.json", lines=True) # Assumed to be loaded
-    start_time = time.time()
-    df_sampled = df_full.sample(frac=0.1, random_state=42)
-    load_time = time.time() - start_time
-    
-    print("Dataset shape:", df_sampled.shape)
-    # print("First 5 records:\n", df_sampled.head()) # Output omitted
-    mem_usage = df_sampled.memory_usage(deep=True).sum() / (1024**2)
-    print(f"\nMemory usage: {mem_usage:.2f} MB")
-    print(f"Execution time: {load_time:.2f} seconds") # Time for sampling itself after full load
-    
-    ```
-    
--   **Results**:
-    -   Dataset shape: (101029, 9)
-    -   Memory usage: 138.07 MB (for the sampled DataFrame)
-    -   Execution time: 0.07 seconds (for the sampling operation on an already loaded DataFrame)
--   **Analysis**: Sampling drastically reduces data size and hence memory for subsequent operations, with very fast execution for the sampling step itself.
-
-### 4.2. Dask for Parallel Processing
-
-Dask enables parallel computation on larger-than-memory datasets by dividing them into chunks (partitions) and processing them in parallel.
-
--   **Explanation**: Dask DataFrame was used to read the JSON file with a specified `blocksize` to enable parallel loading and computation. The `.compute()` method triggers the actual execution and brings the result into memory as a Pandas DataFrame.
--   **Code Snippet (Dask)**:
-    
-    
-    ```
-    import dask.dataframe as dd
-    import time
-    
-    start = time.time()
-    ddf = dd.read_json("part-01.json", lines=True, blocksize="64MB")
-    df_computed_dask = ddf.compute() # Materializes the Dask DataFrame into a Pandas DataFrame
-    end = time.time()
-    
-    mem_mb = df_computed_dask.memory_usage(deep=True).sum() / (1024**2)
-    # print("First 5 records:\n", df_computed_dask.head()) # Output omitted
-    print(f"Dataset shape: ({df_computed_dask.shape[0]}, {df_computed_dask.shape[1]})")
-    print(f"Memory usage: {mem_mb:.2f} MB")
-    print(f"Execution time: {end - start:.2f} seconds")
-    
-    ```
-    
--   **Results (from ipynb cell 7, similar to cell 10)**:
-    -   Dataset shape: (1010293, 9)
-    -   Memory usage: 967.74 MB
-    -   Execution time: 23.62 seconds
--   **Analysis**: Dask loaded the full dataset. Its memory usage was lower than the initial Pandas full load (967.74 MB vs 1370.75 MB), and the execution time was higher than Pandas' direct load in this instance, potentially due to overhead of parallelization and the final `.compute()` step materializing the entire DataFrame.
-
-### 4.3. Comparative Performance of Libraries (Normal Load)
-
-To establish a baseline, the performance of Pandas, Polars, and Dask for a normal (full) load of the dataset was compared.
-
-**4.3.1. Pandas (Normal Load)**
-
--   **Code Snippet**:    
-   
-    ```
-    import pandas as pd
-    import time
-    start_time = time.time()
-    df_pandas_full = pd.read_json('part-01.json', lines=True)
-    load_time = time.time() - start_time
-    mem_usage = df_pandas_full.memory_usage(deep=True).sum() / (1024**2)
-    # print("Dataset shape:", df_pandas_full.shape) # Output omitted
-    print(f"\nMemory usage (Pandas Full Load): {mem_usage:.2f} MB")
-    print(f"Execution time (Pandas Full Load): {load_time:.2f} seconds")
-    
-    ```
-    
--   **Results**:
-    -   Memory usage: 1370.75 MB
-    -   Execution time: 16.52 seconds
-
-**4.3.2. Polars (Normal Load)**
-
--   **Explanation**: Polars is a DataFrame library implemented in Rust, designed for fast performance.
--   **Code Snippet**:   
-
-    
-    ```
-    import polars as pl
-    import time
-    start = time.time()
-    df_polars = pl.read_ndjson("part-01.json")
-    end = time.time()
-    # print("Shape:", df_polars.shape) # Output omitted
-    print(f"Execution Time (Polars): {end - start:.2f} seconds")
-    print(f"Memory usage (Polars): {df_polars.estimated_size('mb'):.2f} MB")
-    
-    ```
-    
--   **Results**:
-    -   Execution Time: 2.19 seconds
-    -   Memory usage: 906.20 MB
-
-**4.3.3. Dask (Normal Load via compute)**
-
--   **Explanation**: As described in section 4.2, Dask loads data in parallel partitions. The `.compute()` call materializes it.
--   **Code Snippet**: (Same as section 4.2)
--   **Results (from ipynb cell 10, specifically for this comparison context in ipynb)**:
-    -   Memory usage: 967.74 MB
-    -   Execution time: 22.78 seconds
+### 📈 Visualisation
+<img width="1038" height="412" alt="image" src="https://github.com/user-attachments/assets/8b43095b-54ab-49ad-a932-6936356b89f7" />
 
 
-## 5. Results and Analysis
+### 📊 Performance Analysis
 
-This section synthesizes the performance metrics collected from applying various data handling techniques and comparing library efficiencies.
+- 🐼 **Pandas**
+  - Execution Time: ~2.42 s  
+  - Memory Usage: ~218 MiB  
+  - Uses single-threaded processing → slower and more memory-intensive  
 
-### 5.1. Comparison of Data Handling Techniques (Pandas & Dask)
+- ⚙️ **Dask**
+  - Execution Time: ~2.12 s  
+  - Memory Usage: ~93 MiB  
+  - More memory-efficient due to partitioning  
+  - Slight overhead from task scheduling, especially in small environments  
 
-The `big_data.ipynb` notebook includes visualizations (bar charts) comparing the execution time and memory usage for the five strategies: Load Less Data (Pandas), Use Chunking (Pandas), Optimize Data Types (Pandas), Sampling (Pandas), and Parallel Processing with Dask (Dask normal load).
+- ⚡ **Polars**
+  - Execution Time: ~0.31 s (fastest)  
+  - Memory Usage: ~65 MiB (lowest)  
+  - Uses multi-threading → very efficient and fast  
 
-| Technique | Execution Time (s) | Memory Usage (MB) |
-| :------------------------ | :----------------- | :---------------- |
-| Load Less Data | 16.92 | 235.14 |
-| Use Chunking | 16.37 | 301.95 |
-| Optimize Data Types | 20.66 | 1249.70 |
-| Sampling | 0.07 | 138.07 |
-| Parallel Processing (Dask)| 23.62 | 967.74 |
+### 🔄 Scalability
 
--   **Execution Time**: Sampling was the fastest operation (0.07s, but this is on an already loaded DataFrame for the sampling part itself). Chunking (16.37s) and Loading Less Data (16.92s) were faster than a full Pandas load with data type optimization (20.66s) or a Dask full load (23.62s).
--   **Memory Usage**: Sampling (138.07 MB for the sample) and Loading Less Data (235.14 MB) were the most memory-efficient. Chunking showed the memory of the first chunk (301.95 MB), indicating manageable memory per step. Dask's full load (967.74 MB) used less memory than the full Pandas optimized load (1249.70 MB as per ipynb output for that cell) but more than the initial Pandas load's reported memory usage (1370.75 MB) if we consider the markdown table's optimized Pandas value to be more representative (435.94MB). The notebook's specific "Optimize Data Types" run resulted in higher memory than expected for optimized types compared to a fresh full Pandas load.
+- Dask is designed for distributed systems and can scale across multiple machines  
+- Polars is optimised for single-machine performance  
+- Pandas is limited to smaller datasets due to memory constraints  
 
-### 5.2. Comparison of Library Performance (Normal Load)
+### 💡 Overall Insight
 
-The following table summarizes the performance of Pandas, Polars, and Dask when performing a normal load of the entire dataset:
-
-| Library | Execution Time (s) | Memory Usage (MB) |  
-|---------|---------------------|--------------------|  
-| Pandas | 16.52 | 1370.75 |  
-| Polars | 2.19 | 906.20 |  
-| Dask | 22.78 | 967.74 |
-
-(Source: Results from `big_data.ipynb` and summarized in `big_data.md`)
-
--   **Polars** demonstrated significantly superior performance in both execution time (2.19s) and memory usage (906.20 MB) for a normal load, highlighting its optimized engine.
--   **Pandas** was relatively easy to use but was slower (16.52s) and more memory-intensive (1370.75 MB) for a straightforward full load.
--   **Dask**, when forced to load the entire dataset into memory using `.compute()` for this comparison (22.78s, 967.74 MB), showed overhead compared to Polars and even Pandas in terms of time for this specific task, though it managed memory more efficiently than a basic Pandas full load. Dask's strength lies in handling datasets larger than memory and parallel computations on partitioned data, not necessarily in single full materialization speed against optimized libraries like Polars.
-
-The [big_data.ipynb](https://github.com/drshahizan/HPDP/blob/main/2425/assignment/A2/bdm/BingChiling/big_data.ipynb) notebook also includes bar charts visualizing this comparison.
-
-
+Polars provides the best performance and efficiency.  
+Pandas is the simplest but least efficient for large data.  
+Dask offers good scalability but comes with additional complexity and overhead.
+________________________________________
 ## 6. Conclusion and Reflection
+This study compared different strategies for handling large datasets and evaluated the performance of Pandas, Dask, and Polars.
 
-### 6.1. Summary of Findings
+The results show that Polars achieved the best overall performance, with the fastest execution time and lowest memory usage due to its multi-threaded architecture. Pandas, while simple and easy to use, showed higher memory consumption and slower performance due to its single-threaded processing. Dask provided better memory efficiency than Pandas and offers strong scalability, but its performance was affected by task scheduling overhead in this environment.
 
--   **Polars** performed best in both time and memory for normal data loading due to its optimized engine written in Rust.
--   **Dask** is beneficial for distributed computing or datasets that exceed available RAM, as it processes data in chunks. However, forcing a full computation with `.compute()` for comparison purposes can introduce overhead.
--   **Pandas** remains the most user-friendly for many due to its extensive ecosystem but can be slow and memory-intensive with large datasets without specific optimization strategies.
+Overall, the choice of library depends on the use case. Pandas is suitable for smaller datasets, Dask is ideal for distributed and large-scale processing, and Polars is the most efficient option for high-performance processing on a single machine.
 
-### 6.2. Effectiveness of Strategies
+________________________________________
 
--   **Load Less Data** and **Type Optimization** were highly effective in reducing memory footprint when using Pandas.
--   **Chunking** is a viable strategy for processing large files with limited memory.
--   **Dask Parallel Processing** offers scalability but requires careful implementation to leverage its power effectively.
+## 7. Reflection
+**Joanne:**
 
-### 6.3. Limitations
+Throughout this assignment, several practical challenges were encountered, particularly when working with large datasets. One key issue was the limitation of Google Colab’s RAM, which caused the system to crash when attempting to load the full dataset using Pandas. This highlighted the importance of using efficient data handling strategies such as sampling, chunking, and alternative libraries.
 
--   **Dask Sampling**: Global row-wise sampling in Dask (equivalent to Pandas `.sample(frac=...)`) was not performed because Dask generally requires loading or computing metadata for the entire dataset to perform a global random sample, which can negate some benefits of lazy loading for this specific operation if not handled via more complex Dask-specific sampling patterns. The project focused on more direct comparisons.
--   **Polars Chunking**: The markdown mentioned Polars used `.lazy().slice()` to simulate chunked reads, but detailed comparative tests for chunked processing across all three libraries were not the primary focus of this section of the notebook.
+This experience helped improve my understanding of how different data processing libraries manage memory and performance. I also learned the importance of selecting the right tool based on the dataset size and system constraints. For example, while Pandas is easy to use, it is not suitable for large-scale data processing, whereas Polars provides a more efficient solution for high-performance tasks.
 
-### 6.4. Learning Reflection
+Overall, this assignment strengthened my practical skills in handling big data and improved my ability to evaluate trade-offs between performance, memory usage, and scalability in real-world scenarios.
+________________________________________
 
-This assignment provided significant insights into the practical differences between various data handling libraries and strategies. Key takeaways include:
+## References
 
--   The importance of understanding data types and their impact on memory.
--   The trade-offs between ease of use (Pandas), raw performance (Polars), and scalability for out-of-core computation (Dask).
--   The necessity of choosing the right tool and technique based on the specific dataset characteristics, available computational resources, and the analytical task at hand. We now have a better understanding of how memory usage, performance, and parallelism interact and vary, which is crucial for efficient big data processing.
+Pandas Development Team. (2025). *pandas: Python Data Analysis Library*.  
+https://pandas.pydata.org/
+
+Dask Development Team. (2025). *Dask: Parallel Computing Library*.  
+https://www.dask.org/
+
+Polars Development Team. (2025). *Polars: Fast DataFrame Library*.  
+https://pola.rs/
+
+Python Software Foundation. (2025). *Python Documentation (time module)*.  
+https://docs.python.org/3/library/time.html
+
+Python Software Foundation. (2025). *tracemalloc — Trace memory allocations*.  
+https://docs.python.org/3/library/tracemalloc.html
+
+Kaggle. (n.d.). *Synthetic Fraud Detection Dataset*.  
+https://www.kaggle.com/datasets/ismetsemedov/transactions/data  
+
+---
 
 
-## 7. References
-
--   **Dataset**: Kaggle: IMDB Review Dataset - [https://www.kaggle.com/datasets/ebiswas/imdb-review-dataset](https://www.kaggle.com/datasets/ebiswas/imdb-review-dataset)
--   **Pandas Documentation**: [https://pandas.pydata.org/pandas-docs/stable/](https://pandas.pydata.org/pandas-docs/stable/)
--   **Dask Documentation**: [https://docs.dask.org/en/latest/](https://docs.dask.org/en/latest/)
--   **Polars Documentation**: [https://pola-rs.github.io/polars-book/user-guide/](https://pola-rs.github.io/polars-book/user-guide/)
 
 
-## Appendix: Code and Visualizations
 
-For all detailed Python code, execution outputs, and generated visualizations (bar charts comparing performance metrics), please refer to the accompanying Jupyter Notebook: [big_data.ipynb](https://github.com/drshahizan/HPDP/blob/main/2425/assignment/A2/bdm/BingChiling/big_data.ipynb).
 
-----------
 
-**Academic Integrity Note:** All work presented in this report and the accompanying notebook is original. Academic integrity has been strictly adhered to.
