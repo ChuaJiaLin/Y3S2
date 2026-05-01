@@ -643,13 +643,18 @@ Polars provides the best performance and efficiency.
 Pandas is the simplest but least efficient for large data.  
 Dask offers good scalability but comes with additional complexity and overhead.
 ________________________________________
-## 6. Conclusion and Reflection
-This study compared different strategies for handling large datasets and evaluated the performance of Pandas, Dask, and Polars.
+## 6. Conclusion
+This study compared different strategies for handling large datasets and evaluated the performance of Pandas, Dask, and Polars in terms of processing efficiency and memory usage.
 
-The results show that Polars achieved the best overall performance, with the fastest execution time and lowest memory usage due to its multi-threaded architecture. Pandas, while simple and easy to use, showed higher memory consumption and slower performance due to its single-threaded processing. Dask provided better memory efficiency than Pandas and offers strong scalability, but its performance was affected by task scheduling overhead in this environment.
+The results show that Polars achieved the best overall performance, especially in execution speed and memory efficiency due to its multi-threaded architecture and efficient columnar processing model. Pandas, while simple and easy to use, showed higher memory consumption and slower performance due to its single-threaded design. Dask provided better memory efficiency and offers strong scalability, but its performance was affected by task scheduling overhead in this environment.
 
-Overall, the choice of library depends on the use case. Pandas is suitable for smaller datasets, Dask is ideal for distributed and large-scale processing, and Polars is the most efficient option for high-performance processing on a single machine.
+In terms of practical application, the choice of library depends on the scale and context of the use case. Pandas is suitable for smaller datasets, Dask is ideal for distributed and large-scale processing, and Polars is the most efficient option for high-performance processing on a single machine.
 
+From a scalability perspective, the current 2.73 GB dataset is already a relatively large workload that begins to test the limits of single-machine processing. Pandas may struggle with memory usage since it loads data into memory all at once, while Polars performs more efficiently due to its columnar, multi-threaded design. Dask can be used to load larger datasets than Pandas by enabling more flexible memory handling.
+
+If the dataset increased to 10 GB or 100 GB, in-memory approaches would become increasingly impractical. Polars would still perform well with optimisation, while Dask would become more necessary for handling data that exceeds memory limits. At around 1 TB, single-machine solutions would no longer be sufficient, and distributed systems like Apache Spark or cloud-based platforms would be required.
+
+Overall, as data size grows, the key limitation shifts from the choice of library to the underlying system architecture, with distributed computing becoming essential at very large scales.
 ________________________________________
 
 ## 7. Reflection
@@ -660,6 +665,10 @@ Throughout this assignment, several practical challenges were encountered, parti
 This experience helped improve my understanding of how different data processing libraries manage memory and performance. I also learned the importance of selecting the right tool based on the dataset size and system constraints. For example, while Pandas is easy to use, it is not suitable for large-scale data processing, whereas Polars provides a more efficient solution for high-performance tasks.
 
 Overall, this assignment strengthened my practical skills in handling big data and improved my ability to evaluate trade-offs between performance, memory usage, and scalability in real-world scenarios.
+
+**Chua Jia Lin:**
+
+
 ________________________________________
 
 ## References
