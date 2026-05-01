@@ -33,13 +33,14 @@ Our project focuses on mastering scalable big data techniques using tools such a
 ## 📄 Description
 This project examines efficient big data handling strategies using the Transaction Dataset (2.73GB, over 7 million records). The objective is to evaluate and compare the performance of three popular Python data processing libraries which are Pandas, Dask, and Polars when working with large-scale datasets.
 
-To achieve this, we applied and benchmarked the following five big data handling strategies:
+To achieve this, we applied and benchmarked the following big data handling strategies:
 - **Load Less Data:** Load only relevant columns to reduce memory usage and improve efficiency.
 - **Use Chunking:** Process the dataset in smaller chunks to prevent memory overload.
 - **Optimize Data Types:** Convert data columns' data types to more memory-efficient data types (e.g., category, float32, int8).
 - **Sampling:** Randomly sample a subset of the data to enable faster prototyping.
 - **Parallel Processing with Polars:** Leverage Polars’ built-in multithreading and columnar execution engine for fast and scalable data processing.
+- **Parallel Processing with Dask:** Use a task-based parallel computing framework that enables lazy evaluation and scalable processing through distributed-like execution using .compute().
 
 The project is divided into two comparative analyses:
-- Strategy-level comparison (using Pandas and Polars) to measure how each strategy affects performance.
+- Strategy-level comparison (using Pandas, Polars, and Dask) to measure how each strategy affects performance.
 - Library-level comparison of Pandas, Dask, and Polars focusing on the performance of full dataset loading.
