@@ -94,34 +94,34 @@ files.upload()
 
 
 ### 3.2 Load Sample (1 Million Rows)
+The dataset was fully loaded into memory using Pandas for inspection.
+
 ```python
 import pandas as pd
-df = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+df = pd.read_csv("synthetic_fraud_data.csv")
 ```
 
 
 ### 3.3 Inspect Dataset
+Initial data exploration was performed to examine the dataset structure, including previewing sample records, checking dimensions, identifying data types, and verifying the absence of missing values.
+
 ```python
-print("First 5 rows:")
+print("First 5 rows of the dataset:")
 display(df.head())
 
-print("\nDataset Shape:")
-print(df.shape)
+print("\nDataset shape:", df.shape)
 
-print("\nData Types:")
-print(df.dtypes)
+print("\nColumn Names and Data Types:\n", df.dtypes)
 
-print("\nMissing Values:")
-print(df.isnull().sum())
+print("\nNumber of NULL records in each column:\n", df.isnull().sum())
 
 ```
-Output
-```python
-Shape: (1000000, 24)
-No missing values detected
-Data types include: object, float64, int64, bool
+Output:
+- First 5 rows of dataset is displayed
+- Dataset shape: (7483766, 24)
+- Data types include: object, float64, int64, bool
+- No missing values detected
 
-```
 ### Discussion
 The dataset consists of structured transaction data with no missing values. It includes multiple data types, making it suitable for applying different optimisation strategies.
 
@@ -130,7 +130,7 @@ The dataset consists of structured transaction data with no missing values. It i
 In this notebook, five effective strategies are applied to handle large datasets.  
 Part 1 focuses on implementing optimisation techniques using **Pandas**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
 
-**Part 1** uses a subset of **1 million records** to reduce memory usage and speed up development. This allows efficient testing and demonstration of each strategy without overloading the system.
+**Part 1** uses a subset of **1 million records** instead of the full dataset because loading the entire dataset causes runtime crashes due to memory limitations. Using a smaller subset reduces memory usage, improves processing speed, and allows demonstration of each strategy without overloading the system.
 
 **Part 2** uses the **full dataset** for each library to ensure a fair and realistic performance comparison. Evaluating all libraries under the same conditions provides accurate measurements of execution time and memory usage, and better reflects real-world data processing scenarios.
 
@@ -141,45 +141,84 @@ Part 1 focuses on implementing optimisation techniques using **Pandas**, while P
 - Use Chunking  
 - Optimise Data Types  
 - Sampling  
-- Parallel Processing with Scalable Libraries  
+- Parallel Processing with Scalable Libraries (Polars)  
 
 
 ### 4.1 Load Less Data
-```python
-selected_cols = [
-    'transaction_id','customer_id','merchant',
-    'amount','currency','high_risk_merchant','is_fraud'
-]
+This strategy reduces memory usage and improves performance by loading only the required columns and limiting the number of rows instead of reading the entire dataset.
 
-df_selected = pd.read_csv(
-    "synthetic_fraud_data.csv",
-    usecols=selected_cols,
-    nrows=1000000
-)
+```python
+# Select only the necessary columns to reduce memory usage
+selected_cols = ['transaction_id', 'customer_id', 'merchant', 'amount', 'currency', 'high_risk_merchant', 'is_fraud']
+
+# Measure execution time
+start_time = time.time()
+
+# Load only the selected columns
+df_selected = pd.read_csv('synthetic_fraud_data.csv', usecols=selected_cols, nrows=1000000)
+
+# Execution time
+exec_time = time.time() - start_time
+
+# Display basic info
+print("Dataset shape:", df_selected.shape)
+print("First 5 records:\n", df_selected.head())
+
+# Memory used
+mem_used = df_selected.memory_usage(deep=True).sum() / (1024**2)  # in MiB
+print("\nMemory usage:", round(mem_used, 2), "MiB")
+print("Execution time:", round(exec_time, 2),  "seconds")
 ```
+
 ### Output
 ```python
-Shape: (1000000, 7)
-Memory usage: ~228 MB
-Execution time: ~4.13 seconds
+Dataset shape: (1000000, 7)
+Memory usage: 228.28 MiB
+Execution time: 6.05 seconds
 ```
 ### Discussion
 Loading only necessary columns reduces memory usage and improves performance.
 
 ### 4.2 Chunking
+This strategy processes the dataset in smaller chunks instead of loading it all at once, helping to manage memory usage when working with large datasets.
+
 ```python
-chunk_iter = pd.read_csv(
-    "synthetic_fraud_data.csv",
-    chunksize=200000,
-    nrows=1000000
-)
+chunksize = 200000
+chunk_iter = pd.read_csv("synthetic_fraud_data.csv", chunksize=chunksize, nrows=1000000)
+
+total_rows = 0
+max_mem = 0
+
+# Measure execution time
+start_time = time.time()
+
+# Process chunks
+for i, chunk in enumerate(chunk_iter):
+    print("Chunk", i+1, ":", chunk.shape)
+    print("First 5 rows of Chunk", i+1, ":\n", chunk.head())
+    print("-" * 50)
+    total_rows += len(chunk)
+    mem_used = chunk.memory_usage(deep=True).sum() / (1024 ** 2)
+    max_mem = max(max_mem, mem_used)
+
+print("Finished processing all chunks!")
+
+# Execution time
+exec_time = time.time() - start_time
+
+# Display basic info
+print("Total rows processed:", total_rows)
+print("\nMaximum memory used:", round(max_mem, 2), "MiB")
+print("Total execution time:", round(exec_time, 2), "seconds")
+
 ```
 
 ### Output
 ```python
-Processed in chunks
-Max memory usage: ~217 MB
-Execution time: ~14.7 seconds
+Finished processing all chunks!
+Total rows processed: 1000000
+Maximum memory used: 217.97 MiB
+Total execution time: 15.97 seconds
 ```
 
 ### Explanation
@@ -187,20 +226,53 @@ Chunking helps process large datasets without exceeding memory limits but adds p
 ________________________________________
 
 ### 4.3 Data Type Optimisation
+This strategy reduces memory usage by converting columns to more efficient data types, such as smaller numeric types or categorical variables.
+
 ```python
+# Start timing
+start_time = time.time()
+
+# Load the dataset
 df = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
 
+# Optimize data types during loading
+df["transaction_id"] = df["transaction_id"].astype("category")
+df["customer_id"] = df["customer_id"].astype("category")
+df["card_number"] = df["card_number"].astype("string")
+df["merchant_category"] = df["merchant_category"].astype("category")
+df["merchant_type"] = df["merchant_type"].astype("category")
+df["merchant"] = df["merchant"].astype("category")
 df["amount"] = df["amount"].astype("float32")
+df["currency"] = df["currency"].astype("category")
+df["country"] = df["country"].astype("category")
+df["city"] = df["city"].astype("category")
+df["city_size"] = df["city_size"].astype("category")
+df["card_type"] = df["card_type"].astype("category")
+df["device"] = df["device"].astype("category")
+df["channel"] = df["channel"].astype("category")
+df["distance_from_home"] = df["distance_from_home"].astype("int16")
 df["transaction_hour"] = df["transaction_hour"].astype("int8")
+
+# Execution time
+exec_time = time.time() - start_time
+
+# Measure memory usage
+mem_used = df.memory_usage(deep=True).sum() / (1024**2)
+
+# Output
+print("\nMemory usage:", round(mem_used, 2), "MiB")
+print("Execution time:", round(exec_time, 2),  "seconds")
+print("\nColumn Names and Data Types:\n", df.dtypes)
+print("\nFirst 5 rows:\n", df.head(5))
 ```
 ### Output
 ```python
-Memory usage reduced
-Execution time: ~17.7 seconds
+Memory usage: 580.79 MiB
+Execution time: 17.8 seconds
 ```
 
 ### Discussion
-Optimising data types significantly reduces memory usage but requires careful implementation.
+Data type optimisation can reduce memory usage in theory, but in this case it resulted in higher memory consumption and slower execution due to conversion overhead and intermediate processing.
 
 ________________________________________
 ### 4.4 Sampling
@@ -397,9 +469,6 @@ ________________________________________
 This approach uses Polars to load the full dataset into memory. Polars is designed for high-performance data processing and uses a Rust-based engine with built-in multi-threading. This allows it to process data faster and more efficiently compared to traditional single-threaded libraries.
 
 ```python
-import polars as pl
-import time
-
 # Measure execution time
 start_time = time.time()
 
@@ -412,7 +481,7 @@ exec_time = time.time() - start_time
 # Measure memory usage
 mem_used = df_polars.estimated_size() / (1024**2)
 
-# Output
+# Show basic info
 print("First 5 rows:", df_polars.head(5))
 print("Shape:", df_polars.shape)
 print("Execution Time:", round(exec_time, 2), "seconds")
@@ -451,7 +520,7 @@ ________________________________________
 - Use Chunking
 - Optimize Data Types
 - Sampling
-- Parallel Processing with Polars
+- Parallel Processing using Polars
 
 Two bar charts are generated:
 -One compares the execution time (in seconds).
