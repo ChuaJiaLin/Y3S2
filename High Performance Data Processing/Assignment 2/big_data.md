@@ -528,7 +528,41 @@ Two bar charts are generated:
 
 This analysis helps to identify which strategy offers the best trade-off between speed and memory efficiency when using traditional vs. parallelized approaches.
 
-\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+### ⚡ Big Data Handling Strategies Performance Comparison
+
+| Strategy | Execution Time (s) | Memory Usage (MiB) |
+|--------|------------------|-------------------|
+| Load Less Data | 6.05 | 228.28 |
+| Use Chunking   | 15.97 | 217.97  |
+| Optimize Data Types | 17.80 | 580.79 |
+| Sampling   | 11.27 | 109.74  |
+| Parallel Processing with Polars | 12.08 | 338.77  |
+
+### 📈 Visualisation
+<img width="1038" height="412" alt="image" src="https://github.com/user-attachments/assets/8b43095b-54ab-49ad-a932-6936356b89f7" />
+
+### 📊 Performance Analysis
+* **Execution Time**
+  - Load Less Data (6.05s) is the fastest strategy because it reduces the amount of data processed, leading to lower computation time.
+  - Sampling (11.27s) also performs efficiently, as it works on a smaller subset of the data while still providing approximate insights.
+  - Parallel Processing using Polars (12.08s) shows competitive performance but is slightly slower due to parallel execution overhead.
+  - Chunking (15.97s) is slower because it processes data in multiple iterations, introducing loop and I/O overhead.
+  - Optimize Data Types (17.8s) is the slowest strategy due to the additional preprocessing required for type conversion.
+
+* **Memory Usage**
+  - Sampling (109.74 MiB) is the most memory-efficient strategy, as it operates on a significantly reduced subset of the dataset.
+  - Chunking (217.97 MiB) and Load Less Data (228.28 MiB) show moderate memory usage, as they limit the amount of data processed at a time.
+  - Parallel Processing using Polars (338.77 MiB) consumes more memory due to parallel execution overhead and internal data structures.
+  - Optimize Data Types (580.79 MiB) results in the highest memory usage, likely due to intermediate transformations and data conversions.
+
+* **Processing Efficiency**
+  - Load Less Data is very easy to implement and highly efficient, but it may lead to loss of important information if too much data is excluded.
+  - Sampling is simple and fast, making it useful for exploratory analysis, but results may not fully represent the entire dataset.
+  - Chunking requires moderate effort to implement, as it involves iterative processing, but it is effective for handling datasets larger than memory.
+  - Optimize Data Types requires careful handling and domain knowledge to avoid incorrect conversions, making it moderately complex and less efficient in this case.
+  - Parallel Processing using Polars is easy to implement with built-in parallelism and provides good performance, but at the cost of higher memory usage.
+
+In conclusion, Load Less Data is the fastest and most efficient strategy overall when data reduction is acceptable. Sampling provides the best memory efficiency and is ideal for exploratory analysis. Chunking is useful for large datasets that exceed memory limits but introduces processing overhead. Optimize Data Types is the least efficient in this scenario due to high memory usage and slower execution. Parallel processing using Polars offers good scalability and balanced performance, but it is not the most memory-efficient option in this comparison.
 
 
 🔍 **Part 2: Compare between 3 library**
