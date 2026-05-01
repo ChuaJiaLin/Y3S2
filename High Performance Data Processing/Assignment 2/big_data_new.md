@@ -128,11 +128,7 @@ The dataset consists of structured transaction data with no missing values. It i
 ## 4. Big Data Handling Strategies
 
 In this notebook, five effective strategies are applied to handle large datasets.  
-Part 1 focuses on implementing optimisation techniques using **Pandas**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
-
-**Part 1** uses a subset of **1 million records** instead of the full dataset because loading the entire dataset causes runtime crashes due to memory limitations. Using a smaller subset reduces memory usage, improves processing speed, and allows demonstration of each strategy without overloading the system.
-
-**Part 2** uses the **full dataset** for each library to ensure a fair and realistic performance comparison. Evaluating all libraries under the same conditions provides accurate measurements of execution time and memory usage, and better reflects real-world data processing scenarios.
+Part 1 focuses on implementing optimisation techniques using **Pandas** and scalable libraries such as **Polars** and **Dask**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
 
 ---
 
@@ -141,7 +137,7 @@ Part 1 focuses on implementing optimisation techniques using **Pandas**, while P
 - Use Chunking  
 - Optimise Data Types  
 - Sampling  
-- Parallel Processing with Scalable Libraries (Polars)  
+- Parallel Processing with Scalable Libraries (Polars and Dask)  
 
 
 ### 4.1 Load Less Data
@@ -155,7 +151,7 @@ selected_cols = ['transaction_id', 'customer_id', 'merchant', 'amount', 'currenc
 start_time = time.time()
 
 # Load only the selected columns
-df_selected = pd.read_csv('synthetic_fraud_data.csv', usecols=selected_cols, nrows=1000000)
+df_selected = pd.read_csv('synthetic_fraud_data.csv', usecols=selected_cols)
 
 # Execution time
 exec_time = time.time() - start_time
@@ -172,9 +168,9 @@ print("Execution time:", round(exec_time, 2),  "seconds")
 
 ### Output
 ```python
-Dataset shape: (1000000, 7)
-Memory usage: 228.28 MiB
-Execution time: 6.05 seconds
+Dataset shape: (7483766, 7)
+Memory usage: 1708.32 MiB
+Execution time: 35.95 seconds
 ```
 ### Discussion
 Loading only necessary columns reduces memory usage and improves performance.
@@ -184,41 +180,49 @@ This strategy processes the dataset in smaller chunks instead of loading it all 
 
 ```python
 chunksize = 200000
-chunk_iter = pd.read_csv("synthetic_fraud_data.csv", chunksize=chunksize, nrows=1000000)
+chunk_iter = pd.read_csv("synthetic_fraud_data.csv", chunksize=chunksize)
 
 total_rows = 0
 max_mem = 0
+total_mem = 0   # sum of memory usage
+num_chunks = 0  # count chunks
 
 # Measure execution time
 start_time = time.time()
 
-# Process chunks
 for i, chunk in enumerate(chunk_iter):
-    print("Chunk", i+1, ":", chunk.shape)
-    print("First 5 rows of Chunk", i+1, ":\n", chunk.head())
-    print("-" * 50)
     total_rows += len(chunk)
+
     mem_used = chunk.memory_usage(deep=True).sum() / (1024 ** 2)
+
     max_mem = max(max_mem, mem_used)
+    total_mem += mem_used
+    num_chunks += 1
 
 print("Finished processing all chunks!")
 
 # Execution time
 exec_time = time.time() - start_time
 
-# Display basic info
+# Calculate average memory
+avg_mem = total_mem / num_chunks
+
 print("Total rows processed:", total_rows)
-print("\nMaximum memory used:", round(max_mem, 2), "MiB")
-print("Total execution time:", round(exec_time, 2), "seconds")
+print("Max memory usage:", round(max_mem, 2), "MiB")
+print("Average memory usage:", round(avg_mem, 2), "MiB")
+print("Total (sum) memory usage:", round(total_mem, 2), "MiB")
+print("Execution time:", round(exec_time, 2), "seconds")
 
 ```
 
 ### Output
 ```python
 Finished processing all chunks!
-Total rows processed: 1000000
-Maximum memory used: 217.97 MiB
-Total execution time: 15.97 seconds
+Total rows processed: 7483766
+Max memory usage: 217.97 MiB
+Average memory usage: 214.44 MiB
+Total (sum) memory usage: 8148.61 MiB
+Execution time: 104.22 seconds
 ```
 
 ### Explanation
@@ -233,7 +237,7 @@ This strategy reduces memory usage by converting columns to more efficient data 
 start_time = time.time()
 
 # Load the dataset
-df = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+df = pd.read_csv("synthetic_fraud_data.csv")
 
 # Optimize data types during loading
 df["transaction_id"] = df["transaction_id"].astype("category")
@@ -267,8 +271,8 @@ print("\nFirst 5 rows:\n", df.head(5))
 ```
 ### Output
 ```python
-Memory usage: 580.79 MiB
-Execution time: 17.8 seconds
+Memory usage: 4353.15 MiB
+Execution time: 151.82 seconds
 ```
 
 ### Discussion
@@ -285,7 +289,7 @@ import time
 start_time = time.time()
 
 # Load dataset
-df_full = pd.read_csv("synthetic_fraud_data.csv", nrows=1000000)
+df_full = pd.read_csv("synthetic_fraud_data.csv")
 
 # Apply sampling (10%)
 df_sample = df_full.sample(frac=0.1, random_state=42)
@@ -305,10 +309,10 @@ df_sample.head()
 
 ### Output
 ```python
-Original rows: 1000000
-Sampled rows: 100000
-Memory usage: 109.74 MiB
-Execution time: 11.27 seconds
+Original rows: 7483766
+Sampled rows: 748377
+Memory usage (sample): 820.57 MiB
+Execution time:  84.64 seconds
 ```
 
 ### Discussion
