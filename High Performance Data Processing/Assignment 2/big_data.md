@@ -515,7 +515,7 @@ The full dataset results show clear performance differences among the three libr
 Polars is the most efficient for single-machine processing, while Dask is better suited for scalable, distributed environments.
 ________________________________________
 ## 5. Comparative Analysis
-🔍 **Part 1: Comparison between 5 Big Data Handling Strategies**
+### 🔍 **Part 1: Comparison between 5 Big Data Handling Strategies**
 - Load Less Data
 - Use Chunking
 - Optimize Data Types
@@ -528,7 +528,7 @@ Two bar charts are generated:
 
 This analysis helps to identify which strategy offers the best trade-off between speed and memory efficiency when using traditional vs. parallelized approaches.
 
-### ⚡ Big Data Handling Strategies Performance Comparison
+#### ⚡ Big Data Handling Strategies Performance Comparison
 
 | Strategy | Execution Time (s) | Memory Usage (MiB) |
 |--------|------------------|-------------------|
@@ -538,10 +538,10 @@ This analysis helps to identify which strategy offers the best trade-off between
 | Sampling   | 11.27 | 109.74  |
 | Parallel Processing with Polars | 12.08 | 338.77  |
 
-### 📈 Visualisation
+#### 📈 Visualisation
 <img width="1038" height="412" alt="image" src="https://github.com/user-attachments/assets/8b43095b-54ab-49ad-a932-6936356b89f7" />
 
-### 📊 Performance Analysis
+#### 📊 Performance Analysis
 * **Execution Time**
   - Load Less Data (6.05s) is the fastest strategy because it reduces the amount of data processed, leading to lower computation time.
   - Sampling (11.27s) also performs efficiently, as it works on a smaller subset of the data while still providing approximate insights.
@@ -563,16 +563,16 @@ This analysis helps to identify which strategy offers the best trade-off between
   - Parallel Processing using Polars is easy to implement with built-in parallelism and provides good performance, but at the cost of higher memory usage.
 
 In conclusion, Load Less Data is the fastest and most efficient strategy overall when data reduction is acceptable. Sampling provides the best memory efficiency and is ideal for exploratory analysis. Chunking is useful for large datasets that exceed memory limits but introduces processing overhead. Optimize Data Types is the least efficient in this scenario due to high memory usage and slower execution. Parallel processing using Polars offers good scalability and balanced performance, but it is not the most memory-efficient option in this comparison.
+________________________________________
 
-
-🔍 **Part 2: Compare between 3 library**
+### 🔍 **Part 2: Compare between 3 library**
 In this section, the performance of three data processing libraries is evaluated:
 - Pandas
 - Polars
 - Dask
 This analysis provides insight into the trade-offs between performance, memory efficiency, and scalability across different libraries. The results are presented using tables and visualisations to clearly highlight performance differences.
 
-### ⚡ Library Performance Comparison
+#### ⚡ Library Performance Comparison
 
 | Library | Execution Time (s) | Memory Usage (MiB) |
 |--------|------------------|-------------------|
@@ -580,7 +580,7 @@ This analysis provides insight into the trade-offs between performance, memory e
 | Dask   | 2.77 | 92.85  |
 | Polars | 0.39 | 64.62  |
 
-### ⚙️ Processing Efficiency
+#### ⚙️ Processing Efficiency
 
 The three libraries show clear differences in ease of implementation, performance behaviour, and scalability.
 
@@ -607,11 +607,11 @@ Polars provides the best balance of performance and ease of use, making it the m
 
 ---
 
-### 📈 Visualisation
+#### 📈 Visualisation
 <img width="1038" height="412" alt="image" src="https://github.com/user-attachments/assets/8b43095b-54ab-49ad-a932-6936356b89f7" />
 
 
-### 📊 Performance Analysis
+#### 📊 Performance Analysis
 
 - 🐼 **Pandas**
   - Execution Time: ~2.42 s  
@@ -629,13 +629,13 @@ Polars provides the best balance of performance and ease of use, making it the m
   - Memory Usage: ~65 MiB (lowest)  
   - Uses multi-threading → very efficient and fast  
 
-### 🔄 Scalability
+#### 🔄 Scalability
 
 - Dask is designed for distributed systems and can scale across multiple machines  
 - Polars is optimised for single-machine performance  
 - Pandas is limited to smaller datasets due to memory constraints  
 
-### 💡 Overall Insight
+#### 💡 Overall Insight
 
 Polars provides the best performance and efficiency.  
 Pandas is the simplest but least efficient for large data.  
