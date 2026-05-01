@@ -38,8 +38,8 @@ To achieve this, we applied and benchmarked the following five big data handling
 - **Use Chunking:** Process the dataset in smaller chunks to prevent memory overload.
 - **Optimize Data Types:** Convert data columns' data types to more memory-efficient data types (e.g., category, float32, int8).
 - **Sampling:** Randomly sample a subset of the data to enable faster prototyping.
-- **Parallel Processing with Dask:** Leverage Dask’s partitioned and parallel execution model for scalable data processing.
+- **Parallel Processing with Polars:** Leverage Polars’ built-in multithreading and columnar execution engine for fast and scalable data processing.
 
 The project is divided into two comparative analyses:
-- Strategy-level comparison (using Pandas and Dask) to measure how each technique affects performance.
+- Strategy-level comparison (using Pandas and Polars) to measure how each strategy affects performance.
 - Library-level comparison of Pandas, Dask, and Polars focusing on the performance of full dataset loading.
