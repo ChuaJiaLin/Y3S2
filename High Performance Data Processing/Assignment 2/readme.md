@@ -2,7 +2,6 @@
 
 <div align="center">
 
-**Group CC**
 |Name|Matric Number|
 |----|-----|
 |Chua Jia Lin|A23CS0069|
