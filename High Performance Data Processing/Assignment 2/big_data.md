@@ -668,6 +668,11 @@ Overall, this assignment strengthened my practical skills in handling big data a
 
 **Chua Jia Lin:**
 
+From this assignment, I realized that simpler strategies can sometimes work better than more complex ones. At first, I thought advanced methods like parallel processing or data type optimisation would perform better, but the results showed that Load Less Data and Sampling actually gave the best performance in terms of both speed and memory. This told me that reducing the amount of data being processed is often more impactful than adding complexity.
+
+Besides, I was surprised that the Optimize Data Types strategy performed the worst, with higher memory usage and slower execution. This showed me that optimisation can add extra overhead if not applied carefully. Moreover, Chunking helped to reduce memory usage, but it increased the execution time, showing a trade-off between memory and speed.
+
+Another key takeaway is that parallel processing with Polars is not always the best option for every case, as it used more memory despite good performance. Overall, this assignment helped me understand that choosing the right strategy is more important than using the most advanced method.
 
 ________________________________________
 
