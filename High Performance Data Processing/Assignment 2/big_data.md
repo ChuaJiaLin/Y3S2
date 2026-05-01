@@ -539,7 +539,9 @@ This analysis helps to identify which strategy offers the best trade-off between
 | Parallel Processing with Polars | 12.08 | 338.77  |
 
 #### 📈 Visualisation
-<img width="1038" height="412" alt="image" src="https://github.com/user-attachments/assets/8b43095b-54ab-49ad-a932-6936356b89f7" />
+<img width="989" height="501" alt="comparison 5 strategy_time" src="https://github.com/user-attachments/assets/d88548f0-b7de-4d09-965b-65f4d02c5adf" />
+<img width="989" height="501" alt="comparison 5 srategy_memory" src="https://github.com/user-attachments/assets/7fcfc13f-f749-44cf-a5a9-70c8a596a612" />
+
 
 #### 📊 Performance Analysis
 * **Execution Time**
