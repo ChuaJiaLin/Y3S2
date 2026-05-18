@@ -93,7 +93,7 @@ files.upload()
 ```
 
 
-### 3.2 Load Sample (1 Million Rows)
+### 3.2 Load Full Dataset
 The dataset was fully loaded into memory using Pandas for inspection.
 
 ```python
@@ -128,11 +128,7 @@ The dataset consists of structured transaction data with no missing values. It i
 ## 4. Big Data Handling Strategies
 
 In this notebook, five effective strategies are applied to handle large datasets.  
-Part 1 focuses on implementing optimisation techniques using **Pandas**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
-
-**Part 1** uses a subset of **1 million records** instead of the full dataset because loading the entire dataset causes runtime crashes due to memory limitations. Using a smaller subset reduces memory usage, improves processing speed, and allows demonstration of each strategy without overloading the system.
-
-**Part 2** uses the **full dataset** for each library to ensure a fair and realistic performance comparison. Evaluating all libraries under the same conditions provides accurate measurements of execution time and memory usage, and better reflects real-world data processing scenarios.
+Part 1 focuses on implementing optimisation techniques using **Pandas** and scalable libraries such as **Polars** and **Dask**, while Part 2 compares the performance of three libraries: **Pandas, Dask, and Polars**.
 
 ---
 
@@ -141,7 +137,11 @@ Part 1 focuses on implementing optimisation techniques using **Pandas**, while P
 - Use Chunking  
 - Optimise Data Types  
 - Sampling  
-- Parallel Processing with Scalable Libraries (Polars)  
+- Parallel Processing with Scalable Libraries (Polars and Dask)
+
+Part 1 uses a subset of 1 million records (except parallel processing using Dask because it does not support nrows parameter) to reduce memory usage and speed up development. This allows efficient testing and demonstration of each strategy without overloading the system.
+
+Part 2 uses the full dataset for each library to ensure a fair and realistic performance comparison. Evaluating all libraries on the same complete dataset provides accurate measurements of execution time and memory usage, and better reflects real-world data processing scenarios.
 
 
 ### 4.1 Load Less Data
@@ -210,13 +210,13 @@ exec_time = time.time() - start_time
 print("Total rows processed:", total_rows)
 print("\nMaximum memory used:", round(max_mem, 2), "MiB")
 print("Total execution time:", round(exec_time, 2), "seconds")
-
 ```
 
 ### Output
 ```python
 Finished processing all chunks!
 Total rows processed: 1000000
+
 Maximum memory used: 217.97 MiB
 Total execution time: 15.97 seconds
 ```
@@ -307,8 +307,8 @@ df_sample.head()
 ```python
 Original rows: 1000000
 Sampled rows: 100000
-Memory usage: 109.74 MiB
-Execution time: 11.27 seconds
+Memory usage (sample): 109.74 MiB
+Execution time:  11.27 seconds
 ```
 
 ### Discussion
@@ -320,8 +320,12 @@ ________________________________________
 ### 4.5 Parallel Processing with Scalable Libraries
 Parallel processing improves performance by executing multiple operations simultaneously using multiple CPU cores instead of sequential processing. This is especially important for large datasets where single-threaded processing becomes slow and inefficient.
 
+**Library Used:**
+- Polars
+- Dask
+________________________________________
 
-**Library Used**  
+**Library Used: Polars**  
 Polars is used as it supports multi-threaded execution by default. Unlike Pandas, which is single-threaded, Polars distributes operations across multiple CPU cores, resulting in faster and more efficient data processing.
 
 ```python
@@ -330,12 +334,13 @@ import time
 
 print("\n--- Parallel Processing using Polars ---")
 
+# Start timing
 start_time = time.time()
 
 # Load dataset (multi-threaded internally)
 df = pl.read_csv("synthetic_fraud_data.csv", n_rows=1_000_000)
 
-# Measure memory usage
+# Measure memory usage (in MiB)
 mem_before = df.estimated_size("mb")
 
 # Parallel operations
@@ -349,8 +354,13 @@ result = (
     ])
 )
 
+# Measure result memory
+mem_after = result.estimated_size("mb")
+
+# End timing
 end_time = time.time()
 
+# Output
 print(result.head())
 print("\nExecution Time:", round(end_time - start_time, 2), "seconds")
 print("Memory Usage (Before):", round(mem_before, 2), "MiB")
@@ -361,27 +371,67 @@ print("Memory Usage (Before):", round(mem_before, 2), "MiB")
 --- Parallel Processing using Polars ---
 shape: (5, 3)
 ┌───────────────────┬──────────────┬───────────────────┐
-│ merchant_category │ avg_amount   │ transaction_count │
-├───────────────────┼──────────────┼───────────────────┤
-│ Education         │ 48041.03     │ 118790            │
-│ Retail            │ 65623.42     │ 119067            │
-│ Restaurant        │ 30708.82     │ 107907            │
-│ Entertainment     │ 32767.58     │ 111443            │
-│ Gas               │ 49028.25     │ 119424            │
+│ merchant_category ┆ avg_amount   ┆ transaction_count │
+│ ---               ┆ ---          ┆ ---               │
+│ str               ┆ f64          ┆ u32               │
+╞═══════════════════╪══════════════╪═══════════════════╡
+│ Education         ┆ 48041.032007 ┆ 118790            │
+│ Retail            ┆ 65623.423271 ┆ 119067            │
+│ Restaurant        ┆ 30708.818139 ┆ 107907            │
+│ Entertainment     ┆ 32767.580373 ┆ 111443            │
+│ Gas               ┆ 49028.253544 ┆ 119424            │
 └───────────────────┴──────────────┴───────────────────┘
 
 Execution Time: 12.08 seconds
 Memory Usage (Before): 338.77 MiB
 ```
+_________________________________
+
+**Library Used: Dask** 
+Dask is used as a parallel computing library that enables scalable data processing through lazy evaluation and task-based execution. Unlike Pandas, which loads and processes data in memory sequentially, Dask splits operations into parallel tasks and computes them efficiently when .compute() is called.
+
+```python
+import dask.dataframe as dd
+import time
+
+# Start timing
+start_time = time.time()
+
+# Load data using Dask
+df = dd.read_csv("synthetic_fraud_data.csv")
+
+# Trigger computation
+df = df.compute()
+
+# End timing
+end_time = time.time()
+
+# Memory usage in MiB
+mem_used = df.memory_usage(deep=True).sum() / (1024**2)
+
+print(df.head())
+print("Execution time:", round(end_time - start_time, 2), "seconds")
+print("Memory usage:", round(mem_used, 2), "MiB")
+```
+
+### Output
+```python
+Execution time: 100.4 seconds
+Memory usage: 3523.78 MiB
+```
 
 ### Discussion
-Polars efficiently processes large datasets using parallel processing. By leveraging multi-threading, operations such as filtering, grouping, and aggregation are executed simultaneously across multiple CPU cores, resulting in faster execution compared to sequential processing.
+In this study, two scalable data processing libraries, Polars and Dask, were evaluated to compare their performance in terms of execution time and memory usage for parallel data processing tasks.
 
-The memory usage (~338 MiB) remains reasonable for 1 million records, showing that Polars handles data efficiently on a single machine.
+Polars demonstrated strong performance for single-machine parallel processing. Built on a Rust-based multi-threaded engine, Polars automatically distributes operations across multiple CPU cores, enabling efficient execution of filtering and aggregation tasks. In this experiment, Polars achieved an execution time of 12.08 seconds with memory usage of 338.77 MiB while processing 1 million records. The relatively low execution time shows that Polars can efficiently utilize parallelism with minimal overhead, making it suitable for high-performance analytical workloads on a single machine.
 
-However, Polars is mainly designed for single-machine processing. For much larger datasets that exceed memory limits, distributed frameworks such as Dask or Apache Spark may be more suitable.
+In contrast, Dask uses a lazy evaluation and task-based execution model, where computations are first organized into a task graph and executed only when .compute() is called. This design is highly scalable and beneficial for distributed computing environments. However, Dask introduces additional overhead from task scheduling, partition management, and graph coordination. In this experiment, Dask recorded a significantly higher execution time of 100.4 seconds and memory usage of 3523.78 MiB.
 
-Overall, this strategy demonstrates how scalable libraries improve performance and efficiency when working with big data.
+It is important to note that the comparison is not entirely equal because Dask processed the full dataset, while Polars only processed 1 million records using the n_rows parameter. Dask does not directly support the nrows parameter during CSV loading in the same way as Polars or Pandas. As a result, Dask handled substantially more data, which contributed to the higher execution time and memory consumption.
+
+Despite its lower performance in this experiment, Dask remains highly effective for large-scale and distributed workloads where datasets exceed available memory or require processing across multiple machines. Meanwhile, Polars is more efficient for medium-sized datasets and single-machine environments, offering faster execution with lower overhead.
+
+Overall, the results indicate that Polars is the more efficient choice for high-speed parallel processing on a single machine, while Dask is better suited for scalable big data processing and distributed computing scenarios. The findings also demonstrate that the effectiveness of a parallel processing framework depends heavily on dataset size, execution environment, and workload characteristics.
 ________________________________________
 ### 🔹 Part 2: Loading Dataset with Different Libraries
 This approach loads the entire dataset into memory using Pandas without applying any optimisation techniques. It represents the traditional method of handling data and serves as a baseline for comparison with other big data handling strategies.
@@ -459,7 +509,7 @@ Memory usage: 3523.78 MiB
 ```
 
 ### Discussion
-The Dask implementation shows lower memory usage (~3524 MiB) compared to Pandas, as it processes data in partitions rather than loading everything at once initially. However, the execution time (~96 seconds) is slower due to overhead from task scheduling and coordination.
+The Dask implementation shows lower memory usage (~3524 MiB) compared to Pandas, as it processes data in partitions rather than loading everything at once initially. However, the execution time (~97 seconds) is slower due to overhead from task scheduling and coordination.
 
 When .compute() is called, the full dataset is still brought into memory, which reduces some of the advantages of Dask's lazy evaluation in this scenario. This explains why performance is slower compared to Pandas despite improved memory efficiency.
 
@@ -500,7 +550,7 @@ Polars demonstrates significantly faster performance (~16 seconds) compared to P
 
 The memory usage (~2528 MiB) is also lower than Pandas, indicating more efficient memory management. Compared to Dask, Polars achieves better speed while still maintaining relatively low memory usage.
 
-Overall, Polars is highly suitable for high-performance data processing on a single machine. However, like Pandas, it operates within a single-node environment, and for extremely large datasets, distributed frameworks such as Dask or Apache Spark may be more appropriate.
+Overall, Polars is highly suitable for high-performance data processing on a single machine. However, like Pandas, it operates within a single-node environment, while for extremely large datasets, distributed frameworks such as Dask may be more appropriate.
 ________________________________________
 
 ### **📊 Overall Comparison**
@@ -515,12 +565,13 @@ The full dataset results show clear performance differences among the three libr
 Polars is the most efficient for single-machine processing, while Dask is better suited for scalable, distributed environments.
 ________________________________________
 ## 5. Comparative Analysis
-### 🔍 **Part 1: Comparison between 5 Big Data Handling Strategies**
+### 🔍 **Part 1: Comparison between Big Data Handling Strategies**
 - Load Less Data
 - Use Chunking
 - Optimize Data Types
 - Sampling
 - Parallel Processing using Polars
+- Parallel Processing using Dask
 
 Two bar charts are generated:
 -One compares the execution time (in seconds).
@@ -534,14 +585,14 @@ This analysis helps to identify which strategy offers the best trade-off between
 |--------|------------------|-------------------|
 | Load Less Data | 6.05 | 228.28 |
 | Use Chunking   | 15.97 | 217.97  |
-| Optimize Data Types | 17.80 | 580.79 |
+| Optimize Data Types | 17.8 | 580.79 |
 | Sampling   | 11.27 | 109.74  |
 | Parallel Processing with Polars | 12.08 | 338.77  |
+| Parallel Processing with Dask | 100.4 | 3523.78  |
 
 #### 📈 Visualisation
-<img width="989" height="501" alt="comparison 5 strategy_time" src="https://github.com/user-attachments/assets/d88548f0-b7de-4d09-965b-65f4d02c5adf" />
-<img width="989" height="501" alt="comparison 5 srategy_memory" src="https://github.com/user-attachments/assets/7fcfc13f-f749-44cf-a5a9-70c8a596a612" />
-
+<img width="989" height="501" alt="download" src="https://github.com/user-attachments/assets/25cec25b-3a36-489a-af32-d0003fa1dc93" />
+<img width="989" height="501" alt="download (1)" src="https://github.com/user-attachments/assets/7854f41a-f78e-4253-8b3f-36870c1d5caf" />
 
 #### 📊 Performance Analysis
 * **Execution Time**
@@ -549,22 +600,27 @@ This analysis helps to identify which strategy offers the best trade-off between
   - Sampling (11.27s) also performs efficiently, as it works on a smaller subset of the data while still providing approximate insights.
   - Parallel Processing using Polars (12.08s) shows competitive performance but is slightly slower due to parallel execution overhead.
   - Chunking (15.97s) is slower because it processes data in multiple iterations, introducing loop and I/O overhead.
-  - Optimize Data Types (17.8s) is the slowest strategy due to the additional preprocessing required for type conversion.
+  - Optimize Data Types (17.8s) is the slower due to the additional preprocessing required for type conversion.
+  - Parallel Processing using Dask (100.4s) records the slowest execution time because Dask processes the entire dataset, unlike the other strategies that only use 1 million records. Dask does not directly support the nrows parameter during CSV loading, making partial loading less straightforward and significantly increases execution time for this experiment.
 
 * **Memory Usage**
   - Sampling (109.74 MiB) is the most memory-efficient strategy, as it operates on a significantly reduced subset of the dataset.
   - Chunking (217.97 MiB) and Load Less Data (228.28 MiB) show moderate memory usage, as they limit the amount of data processed at a time.
   - Parallel Processing using Polars (338.77 MiB) consumes more memory due to parallel execution overhead and internal data structures.
-  - Optimize Data Types (580.79 MiB) results in the highest memory usage, likely due to intermediate transformations and data conversions.
+  - Optimize Data Types (580.79 MiB) results in high memory usage, likely due to intermediate transformations and data conversions.
+  - Parallel Processing using Dask (3523.78 MiB) consumes the highest memory because it processes the full dataset in memory. This large overhead is expected when using Dask for scalable big data processing.
 
 * **Processing Efficiency**
   - Load Less Data is very easy to implement and highly efficient, but it may lead to loss of important information if too much data is excluded.
   - Sampling is simple and fast, making it useful for exploratory analysis, but results may not fully represent the entire dataset.
   - Chunking requires moderate effort to implement, as it involves iterative processing, but it is effective for handling datasets larger than memory.
   - Optimize Data Types requires careful handling and domain knowledge to avoid incorrect conversions, making it moderately complex and less efficient in this case.
-  - Parallel Processing using Polars is easy to implement with built-in parallelism and provides good performance, but at the cost of higher memory usage.
+  - Parallel Processing using Polars is relatively easy to implement because of its built-in parallelism and optimized execution engine. It provides balanced performance and scalability, though memory usage is higher compared to simpler approaches.
+  - Parallel Processing using Dask is designed for large-scale and distributed data processing. While it performs poorly in this experiment, the comparison is not entirely equal because Dask processes the full dataset whereas the other strategies only process 1 million records. Dask is more suitable for datasets that exceed single-machine memory limits and for distributed computing environments.
 
-In conclusion, Load Less Data is the fastest and most efficient strategy overall when data reduction is acceptable. Sampling provides the best memory efficiency and is ideal for exploratory analysis. Chunking is useful for large datasets that exceed memory limits but introduces processing overhead. Optimize Data Types is the least efficient in this scenario due to high memory usage and slower execution. Parallel processing using Polars offers good scalability and balanced performance, but it is not the most memory-efficient option in this comparison.
+In conclusion, Load Less Data is the fastest and most efficient strategy overall when data reduction is acceptable. Sampling provides the best memory efficiency and is ideal for exploratory analysis. Chunking is useful for large datasets that exceed memory limits but introduces processing overhead. Optimize Data Types is the least efficient in this scenario due to high memory usage and slower execution caused by preprocessing operations.
+
+Parallel Processing using Polars offers good scalability and balanced performance with relatively simple implementation, making it a strong alternative for high-performance data processing. Meanwhile, Parallel Processing using Dask shows the weakest performance in this experiment because it processes the entire dataset instead of a 1 million record subset. However, Dask remains highly valuable for large-scale distributed workloads and datasets that cannot fit into memory using traditional data processing libraries.
 ________________________________________
 
 ### 🔍 **Part 2: Compare between 3 library**
@@ -578,9 +634,9 @@ This analysis provides insight into the trade-offs between performance, memory e
 
 | Library | Execution Time (s) | Memory Usage (MiB) |
 |--------|------------------|-------------------|
-| Pandas | 1.96 | 217.97 |
-| Dask   | 2.77 | 92.85  |
-| Polars | 0.39 | 64.62  |
+| Pandas | 2.42 | 217.97 |
+| Dask   | 2.12 | 92.85  |
+| Polars | 0.31 | 64.62  |
 
 #### ⚙️ Processing Efficiency
 
@@ -668,12 +724,11 @@ Overall, this assignment strengthened my practical skills in handling big data a
 
 **Chua Jia Lin:**
 
-From this assignment, I realized that simpler strategies can sometimes work better than more complex ones. At first, I thought advanced methods like parallel processing or data type optimisation would perform better, but the results showed that Load Less Data and Sampling actually gave the best performance in terms of both speed and memory. This told me that reducing the amount of data being processed is often more impactful than adding complexity.
+From this assignment, I realized that simpler strategies can sometimes work better than more complex ones. At first, I thought advanced methods like parallel processing using scalable libraries such as Polars would perform the best, but the results showed that Load Less Data and Sampling actually gave better performance in terms of both speed and memory. This told me that reducing the amount of data being processed is most effective strategies.
 
-Besides, I was surprised that the Optimize Data Types strategy performed the worst, with higher memory usage and slower execution. This showed me that optimisation can add extra overhead if not applied carefully. Moreover, Chunking helped to reduce memory usage, but it increased the execution time, showing a trade-off between memory and speed.
+Besides, I was surprised that the Optimize Data Types strategy performed the worst among all Pandas-based strategies, with highest memory usage and slowest execution. This showed me that optimisation can add extra overhead if not applied carefully. Moreover, Chunking helped to reduce memory usage, but it increased the execution time, showing a trade-off between memory and speed.
 
-Another key takeaway is that parallel processing with Polars is not always the best option for every case, as it used more memory despite good performance. Overall, this assignment helped me understand that choosing the right strategy is more important than using the most advanced method.
-
+Overall, this assignment showed me that choosing the right data processing strategy is more important than simply using the most advanced method. The best approach depends on the dataset size, the task requirements, and the trade-offs between speed, memory, and complexity.
 ________________________________________
 
 ## References
