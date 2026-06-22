@@ -45,3 +45,16 @@ The project is divided into two comparative analyses:
 - Strategy-level comparison (using Pandas, Polars, and Dask) to measure how each strategy affects performance.
 - Library-level comparison of Pandas, Dask, and Polars focusing on the performance of full dataset loading.
 
+---
+
+## 🎓 Reflection
+
+This assignment provided valuable exposure to handling large-scale datasets and applying big data techniques in a practical environment. By working with a real-world dataset exceeding 2.7GB, the project highlighted the challenges associated with memory limitations, processing time, and efficient data handling.
+
+Through the implementation of various strategies such as loading selective columns, chunking, optimizing data types, and sampling, the importance of resource management became more apparent. These techniques demonstrated how performance can be significantly improved by reducing unnecessary data processing and optimizing memory usage.
+
+In addition, the comparison between Pandas, Dask, and Polars offered deeper insights into the strengths and limitations of each library. Pandas was observed to be suitable for smaller datasets due to its simplicity, while Dask and Polars showed better scalability and performance when handling large datasets. The use of parallel processing in Dask and Polars also emphasized the importance of leveraging modern computing capabilities for efficient big data processing.
+
+This project also strengthened analytical thinking and evaluation skills by requiring performance benchmarking based on execution time and memory efficiency. It reinforced the importance of selecting appropriate tools and strategies depending on the data size and application requirements.
+
+Overall, the assignment enhanced understanding of big data handling concepts and provided practical experience in optimizing data workflows. It also highlighted the relevance of scalable solutions in real-world applications, particularly in domains such as finance where large volumes of transaction data are generated continuously.
